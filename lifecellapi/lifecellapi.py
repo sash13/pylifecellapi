@@ -29,21 +29,29 @@ class LifecellApi():
     self.settings = settings
     logger.debug('Init %s done.', __name__)
 
-  def createSignedUrl(self, method, params):
-    query = urllib.urlencode(params)
+  def getParameters(self, params):
+    default = { 'accessKeyCode': self.settings['access_key_code'],
+                'msisdn': self.num,
+                'superPassword': self.pwd
+              }
+    return dict(default.items() + params.items())
+
+  def createSignedUrl(self, method, params={}):
+    p = self.getParameters(params)
+    query = urllib.urlencode(p)
     string = ''.join((method, DELIMITER, query, SIGNATURE))
     digest = hmac.new(self.settings['application_key'], string, hashlib.sha1).digest()
     sign = base64.b64encode(digest) 
     return ''.join((self.settings['api_url'], string, sign))
 
-  def request(self, method, params):
+  def request(self, method, params={}):
     logger.debug('{0} request: {1}'.format(method, params))
     url = self.createSignedUrl(method, params)
     try:
       return requests.get(url, headers={'User-Agent': random.choice(USER_AGENTS)}).text
     except requests.exceptions.Timeout as e:
-      logger.debug('Request timeout.')
+      logger.exception('Request timeout.')
       raise e
     except requests.exceptions.RequestException as e:
-      logger.debug('Request error.')
+      logger.exception('Request error.')
       raise e
