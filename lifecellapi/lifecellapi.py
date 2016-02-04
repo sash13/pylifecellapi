@@ -4,6 +4,7 @@
 import urllib
 import requests
 import random
+import xmltodict
 import hmac
 import hashlib
 import base64
@@ -20,6 +21,7 @@ USER_AGENTS = ('Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.2; Trident/6.0;
                'BlackBerry9700/5.0.0.862 Profile/MIDP-2.1 Configuration/CLDC-1.1 VendorID/331 UNTRUSTED/1.0 3gpp-gba',
               )
 API_CALL = 'apiCall'
+OS_TYPE = 'ANDROID'
 
 class LifecellApi(object):
   __slots__ = ('_session', 'n', '_args')
@@ -52,19 +54,23 @@ class LifecellSession(object):
     self.pwd = password
     self.lang = lang
     self.settings = settings
+    self.osType = OS_TYPE
+    self.token = ''
+    self.subId = ''
     self.user_agent = random.choice(USER_AGENTS)
     logger.debug('Init %s done.', __name__)
 
-  def getParameters(self, params):
-    default = { 'accessKeyCode': self.settings['access_key_code'],
-                'msisdn': self.num,
-                'superPassword': self.pwd
+  def getParameters(self, params = {}):
+    default = { 'msisdn': self.num,
+                'languageId': self.lang,
+                'osType': self.osType,
+                'token': self.token,
+                'accessKeyCode': self.settings['access_key_code']
               }
     return dict(default.items() + params.items())
 
   def createSignedUrl(self, method, params={}):
-    p = self.getParameters(params)
-    query = urllib.urlencode(p)
+    query = urllib.urlencode(params)
     string = ''.join((method, DELIMITER, query, SIGNATURE))
     digest = hmac.new(self.settings['application_key'], string, hashlib.sha1).digest()
     sign = base64.b64encode(digest) 
@@ -73,6 +79,8 @@ class LifecellSession(object):
   def request(self, method, params={}):
     logger.debug('{0} request: {1}'.format(method, params))
     url = self.createSignedUrl(method, params)
+    logger.debug('Sign url: %s', url)
+
     try:
       return requests.get(url, headers={'User-Agent': self.user_agent}).text
     except requests.exceptions.Timeout as e:
@@ -83,4 +91,16 @@ class LifecellSession(object):
       raise e
 
   def apiCall(self, methods):
-    return self.request(methods._name, methods._args)
+    params = self.getParameters(methods._args)
+    return self.request(methods._name, params)
+
+  def signIn(self):
+    params = {'msisdn': self.num,
+              'superPassword': self.pwd,
+              'accessKeyCode': self.settings['access_key_code']
+              }
+    req = self.request('signIn', params)
+    parse = xmltodict.parse(req)
+    self.token = parse['response']['token']
+    self.subId = parse['response']['subId']
+    
