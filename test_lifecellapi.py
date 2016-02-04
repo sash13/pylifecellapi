@@ -2,11 +2,11 @@
 #!/usr/bin/env python
 
 import unittest
-from  lifecellapi import LifecellApi
+from  lifecellapi import LifecellSession
 
 class LifecellApiTest(unittest.TestCase):
   def setUp(self):
-    self.api = LifecellApi('380931234567', '123456')
+    self.api = LifecellSession('380931234567', '123456')
 
   def testSignedUrl(self):
     req = { 'accessKeyCode': self.api.settings['access_key_code'], 'msisdn': self.api.num, 'superPassword': self.api.pwd}
