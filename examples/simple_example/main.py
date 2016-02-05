@@ -16,7 +16,7 @@ def main():
 
   ansv = api.getBalances()
 
-  print json.dumps(ansv, indent=4)
+  print(json.dumps(ansv, indent=4))
 
 if __name__ == '__main__':
   main()
