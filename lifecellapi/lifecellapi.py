@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python
 
-from config import settings
+from config import (settings, RESPONSE_CODES, API_METHODS)
 
 import urllib
 import requests
@@ -67,11 +67,11 @@ class LifecellSession(object):
 
   def getParameters(self, params={}):
     default = {'msisdn': self.num,
-           'languageId': self.lang,
-           'osType': self.osType,
-           'token': self.token,
-           'accessKeyCode': self.settings['access_key_code']
-           }
+               'languageId': self.lang,
+               'osType': self.osType,
+               'token': self.token,
+               'accessKeyCode': self.settings['access_key_code']
+              }
     return dict(default.items() + params.items())
 
   def createSignedUrl(self, method, params={}):
@@ -100,17 +100,21 @@ class LifecellSession(object):
       logger.exception('Request error.')
       raise e
 
-  def apiCall(self, methods):
-    params = self.getParameters(methods._args)
-    req = self.request(methods._name, params)
+  def apiProcess(self, method, params={}):
+    params = self.getParameters(params)
+    req = self.request(method, params)
     return xmltodict.parse(req)
+
+  def apiCall(self, obj):
+    if obj._name not in API_METHODS:
+      raise NotImplementedError('Wrong api method %s', obj._name)
+    return self.apiProcess(obj._name, obj._args)
 
   def signIn(self):
     params = {'msisdn': self.num,
-          'superPassword': self.pwd,
-          'accessKeyCode': self.settings['access_key_code']
-          }
-    req = self.request('signIn', params)
-    parse = xmltodict.parse(req)
-    self.token = parse['response']['token']
-    self.subId = parse['response']['subId']
+              'superPassword': self.pwd,
+              'accessKeyCode': self.settings['access_key_code']
+             }
+    req = self.apiProcess('signIn', params)
+    self.token = req['response']['token']
+    self.subId = req['response']['subId']
