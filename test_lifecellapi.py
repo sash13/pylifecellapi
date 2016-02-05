@@ -33,17 +33,17 @@ class LifecellApiTest(unittest.TestCase):
   def testApiWrongRequest(self):
     try:
       self.api.wrongApi()
-    except LifecellApiWrongMethodError, e:
+    except LifecellApiWrongMethodError as e:
       pass
     except e:
       self.fail('Unexpected exception throw:', e)
     else:
       self.fail('LifecellApiWrongMethodError not throw')
-      
+
   def testApiErrorRequest(self):
     try:
       self.api.getToken()
-    except LifecellApiError, e:
+    except LifecellApiError as e:
       pass
     except e:
       self.fail('Unexpected exception throw:', e)
