@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python
 
-from config import (settings, RESPONSE_CODES, API_METHODS)
+from .config import (settings, RESPONSE_CODES, API_METHODS)
 
-import urllib
+try:
+  from urllib.parse import urlencode
+except ImportError as e:
+  from urllib import urlencode
+
 import requests
 import random
 import xmltodict
@@ -78,17 +82,17 @@ class LifecellSession(object):
                'token': self.token,
                'accessKeyCode': self.settings['access_key_code']
               }
-    return dict(default.items() + params.items())
+    return dict(default, **params)
 
   def createSignedUrl(self, method, params={}):
-    query = urllib.urlencode(params)
+    query = urlencode(params)
     string = ''.join((method, DELIMITER, query, SIGNATURE))
     digest = hmac.new(
-      self.settings['application_key'],
-      string,
+      self.settings['application_key'].encode(),
+      string.encode(),
       hashlib.sha1).digest()
     sign = base64.b64encode(digest)
-    return ''.join((self.settings['api_url'], string, sign))
+    return ''.join((self.settings['api_url'], string, sign.decode()))
 
   def request(self, method, params={}):
     logger.debug('{0} request: {1}'.format(method, params))
