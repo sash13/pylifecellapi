@@ -111,8 +111,8 @@ class LifecellSession(object):
     req = self.request(method, params)
     xml = xmltodict.parse(req)['response']
     respCode = xml['responseCode']
-    if respCode < 0:             # error
-      raise LifecellApiError('Api answered with error: {}', RESPONSE_CODES[respCode])
+    if int(respCode) < 0:             # error
+      raise LifecellApiError('Api answered with error: {}'.format(RESPONSE_CODES[respCode]))
     return xml
 
   def apiCall(self, obj):
@@ -128,3 +128,4 @@ class LifecellSession(object):
     req = self.apiProcess('signIn', params)
     self.token = req['token']
     self.subId = req['subId']
+    return req
