@@ -50,11 +50,17 @@ class Request(object):
     self._args = args
     return self._api(self)
 
+class LifecellApiWrongMethodError(BaseException):
+  """Error when api method not implemented"""
+
+class LifecellApiError(BaseException):
+  """Error when api response with error"""
+       
 
 class LifecellSession(object):
   """Class for acess lifecell api"""
 
-  def __init__(self, msisdn, password, lang='uk'):
+  def __init__(self, msisdn, password, lang='en'):
     self.num = msisdn
     self.pwd = password
     self.lang = lang
@@ -91,8 +97,8 @@ class LifecellSession(object):
 
     try:
       return requests.get(
-        url, headers={
-          'User-Agent': self.user_agent}).text
+        url, headers={'User-Agent': self.user_agent}
+        ).text
     except requests.exceptions.Timeout as e:
       logger.exception('Request timeout.')
       raise e
@@ -103,11 +109,15 @@ class LifecellSession(object):
   def apiProcess(self, method, params={}):
     params = self.getParameters(params)
     req = self.request(method, params)
-    return xmltodict.parse(req)
+    xml = xmltodict.parse(req)['response']
+    respCode = xml['responseCode']
+    if respCode < 0:             # error
+      raise LifecellApiError('Api answered with error: {}', RESPONSE_CODES[respCode])
+    return xml
 
   def apiCall(self, obj):
     if obj._name not in API_METHODS:
-      raise NotImplementedError('Wrong api method %s', obj._name)
+      raise LifecellApiWrongMethodError('Wrong api method: {}'.format(obj._name))
     return self.apiProcess(obj._name, obj._args)
 
   def signIn(self):
@@ -116,5 +126,5 @@ class LifecellSession(object):
               'accessKeyCode': self.settings['access_key_code']
              }
     req = self.apiProcess('signIn', params)
-    self.token = req['response']['token']
-    self.subId = req['response']['subId']
+    self.token = req['token']
+    self.subId = req['subId']
